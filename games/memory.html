@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Memory Match | Arcade Galaxy</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="game-shell">
+    <div class="game-toolbar">
+      <a href="../index.html">← 홈으로</a>
+      <div class="game-cta">
+        <button class="button" id="shuffle">새로운 세트</button>
+      </div>
+    </div>
+    <div class="game-card">
+      <h2 style="margin-top:0">Memory Match</h2>
+      <p style="color:var(--muted);margin-top:4px">카드를 뒤집어 같은 이모지를 찾으세요. 제한 시간 없이 실력에 집중!</p>
+      <div class="status-bar">
+        <span class="status-pill">턴: <span id="turns">0</span></span>
+        <span class="status-pill">맞춘 쌍: <span id="matches">0</span>/8</span>
+      </div>
+      <div class="grid memory-grid" id="grid"></div>
+    </div>
+  </div>
+  <div class="snackbar" id="snackbar">축하합니다! 모든 카드를 완성했습니다.</div>
+  <script>
+    const emojis = ['🚀','🪐','🌟','👾','🎮','🛰️','🎧','💎'];
+    const grid = document.getElementById('grid');
+    const snackbar = document.getElementById('snackbar');
+    const turnsEl = document.getElementById('turns');
+    const matchesEl = document.getElementById('matches');
+    let lock = false;
+    let opened = [];
+    let turns = 0;
+    let matched = 0;
+
+    function createCards() {
+      grid.innerHTML = '';
+      turns = 0;
+      matched = 0;
+      updateStats();
+      opened = [];
+      const deck = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
+      deck.forEach((icon, idx) => {
+        const tile = document.createElement('button');
+        tile.className = 'card-tile';
+        tile.setAttribute('aria-label', `카드 ${idx + 1}`);
+        tile.innerHTML = `<div class="face">?</div>`;
+        tile.dataset.icon = icon;
+        tile.addEventListener('click', () => flip(tile));
+        grid.appendChild(tile);
+      });
+    }
+
+    function flip(tile) {
+      if (lock || tile.classList.contains('flipped')) return;
+      tile.classList.add('flipped');
+      tile.querySelector('.face').textContent = tile.dataset.icon;
+      opened.push(tile);
+
+      if (opened.length === 2) {
+        lock = true;
+        turns++;
+        if (opened[0].dataset.icon === opened[1].dataset.icon) {
+          opened.forEach(t => t.style.cursor = 'default');
+          matched++;
+          setTimeout(() => {
+            opened.forEach(t => t.style.opacity = '0.4');
+            opened = [];
+            lock = false;
+            updateStats();
+            if (matched === emojis.length) celebrate();
+          }, 280);
+        } else {
+          setTimeout(() => {
+            opened.forEach(t => {
+              t.classList.remove('flipped');
+              t.querySelector('.face').textContent = '?';
+            });
+            opened = [];
+            lock = false;
+            updateStats();
+          }, 600);
+        }
+      }
+    }
+
+    function updateStats() {
+      turnsEl.textContent = turns;
+      matchesEl.textContent = matched;
+    }
+
+    function celebrate() {
+      snackbar.classList.add('show');
+      setTimeout(() => snackbar.classList.remove('show'), 1800);
+    }
+
+    document.getElementById('shuffle').addEventListener('click', createCards);
+    createCards();
+  </script>
+</body>
+</html>

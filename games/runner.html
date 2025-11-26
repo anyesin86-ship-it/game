@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Neon Runner | Arcade Galaxy</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="game-shell">
+    <div class="game-toolbar">
+      <a href="../index.html">← 홈으로</a>
+      <div class="game-cta">
+        <button class="button" id="jump">점프 (Space)</button>
+        <button class="button" id="restart">재시작</button>
+      </div>
+    </div>
+    <div class="game-card">
+      <h2 style="margin-top:0">Neon Runner</h2>
+      <p style="color:var(--muted);margin-top:4px">스페이스바 또는 버튼을 눌러 점프하며 장애물을 피하세요.</p>
+      <div class="status-bar">
+        <span class="status-pill">점수: <span id="score">0</span></span>
+        <span class="status-pill">최고 점수: <span id="best">0</span></span>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="runner" width="900" height="380"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="snackbar" id="snackbar">충돌! 다시 도전해보세요.</div>
+  <script>
+    const canvas = document.getElementById('runner');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const snackbar = document.getElementById('snackbar');
+
+    let score = 0;
+    let best = Number(localStorage.getItem('runner-best') || 0);
+    let lastTime = 0;
+    let running = true;
+
+    const player = { x: 120, y: 0, w: 42, h: 42, vy: 0, grounded: false };
+    const gravity = 0.0014;
+    const jumpForce = 0.55;
+    const floor = canvas.height - 70;
+    let obstacles = [];
+    let spawnTimer = 0;
+
+    function resetPlayer() {
+      player.y = floor - player.h;
+      player.vy = 0;
+      player.grounded = true;
+    }
+
+    function spawnObstacle() {
+      const height = 30 + Math.random() * 60;
+      const width = 24 + Math.random() * 30;
+      const gap = Math.max(120, 260 - score * 0.15);
+      obstacles.push({ x: canvas.width + width, y: floor - height, w: width, h: height, speed: 0.35 + score * 0.00008, gap });
+    }
+
+    function update(delta) {
+      if (!running) return;
+      score += Math.floor(delta * 0.05);
+      spawnTimer += delta;
+
+      if (spawnTimer > 900) {
+        spawnObstacle();
+        spawnTimer = 0;
+      }
+
+      player.vy += gravity * delta;
+      player.y += player.vy * delta;
+      if (player.y >= floor - player.h) {
+        player.y = floor - player.h;
+        player.vy = 0;
+        player.grounded = true;
+      }
+
+      obstacles.forEach(o => {
+        o.x -= o.speed * delta;
+      });
+      obstacles = obstacles.filter(o => o.x + o.w > -20);
+
+      obstacles.forEach(o => {
+        if (
+          player.x < o.x + o.w &&
+          player.x + player.w > o.x &&
+          player.y < o.y + o.h &&
+          player.y + player.h > o.y
+        ) {
+          gameOver();
+        }
+      });
+
+      scoreEl.textContent = score;
+    }
+
+    function drawBackground() {
+      ctx.fillStyle = '#0d1222';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = 'rgba(122,245,255,0.25)';
+      for (let x = 0; x < canvas.width; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.beginPath();
+      ctx.moveTo(0, floor + 10);
+      ctx.lineTo(canvas.width, floor + 10);
+      ctx.stroke();
+    }
+
+    function drawPlayer() {
+      const gradient = ctx.createLinearGradient(player.x, player.y, player.x + player.w, player.y + player.h);
+      gradient.addColorStop(0, '#3b8dff');
+      gradient.addColorStop(1, '#8c5bff');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+    }
+
+    function drawObstacles() {
+      ctx.fillStyle = '#f27bd8';
+      obstacles.forEach(o => {
+        ctx.fillRect(o.x, o.y, o.w, o.h);
+      });
+    }
+
+    function loop(timestamp) {
+      const delta = timestamp - lastTime;
+      lastTime = timestamp;
+      update(delta);
+      drawBackground();
+      drawPlayer();
+      drawObstacles();
+      requestAnimationFrame(loop);
+    }
+
+    function jump() {
+      if (!player.grounded || !running) return;
+      player.vy = -jumpForce;
+      player.grounded = false;
+    }
+
+    function gameOver() {
+      running = false;
+      snackbar.classList.add('show');
+      setTimeout(() => snackbar.classList.remove('show'), 1600);
+      if (score > best) {
+        best = score;
+        localStorage.setItem('runner-best', best);
+        bestEl.textContent = best;
+      }
+    }
+
+    function restart() {
+      score = 0;
+      obstacles = [];
+      spawnTimer = 0;
+      running = true;
+      resetPlayer();
+      lastTime = performance.now();
+    }
+
+    document.getElementById('jump').addEventListener('click', jump);
+    document.getElementById('restart').addEventListener('click', restart);
+
+    window.addEventListener('keydown', e => {
+      if (e.code === 'Space') {
+        jump();
+      }
+      if (e.key === 'r') restart();
+    });
+
+    resetPlayer();
+    bestEl.textContent = best;
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

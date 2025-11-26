@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astro Dodger - Galaxy Arcade</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="game-shell">
+    <a class="back-link" href="../index.html">← Back to arcade</a>
+    <div class="game-hero">
+      <div>
+        <h1>Astro Dodger</h1>
+        <p class="controls">WASD or arrow keys to move. Avoid meteor squares for as long as possible.</p>
+      </div>
+      <div class="game-meta">
+        <span class="badge">Keyboard</span>
+        <span class="badge">Endless</span>
+      </div>
+    </div>
+
+    <div class="scoreboard">
+      <span>Score: <strong id="score">0</strong></span>
+      <span>Best: <strong id="best">0</strong></span>
+      <button class="cta" id="start">Start run</button>
+    </div>
+
+    <div class="canvas-frame">
+      <canvas id="astro-canvas" width="720" height="480"></canvas>
+    </div>
+    <p class="controls">Tip: graze close to meteors to earn bonus streak points!</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('astro-canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const startBtn = document.getElementById('start');
+
+    const state = {
+      running: false,
+      player: { x: 340, y: 360, size: 30, speed: 4 },
+      meteors: [],
+      score: 0,
+      best: Number(localStorage.getItem('astroBest') || 0),
+      streak: 0,
+      lastTime: 0
+    };
+
+    bestEl.textContent = state.best;
+    const keys = new Set();
+    document.addEventListener('keydown', e => keys.add(e.key.toLowerCase()));
+    document.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+
+    function resetGame() {
+      state.player.x = 340;
+      state.player.y = 360;
+      state.meteors = [];
+      state.score = 0;
+      state.streak = 0;
+      state.running = true;
+      state.lastTime = performance.now();
+      spawnMeteor();
+      requestAnimationFrame(loop);
+    }
+
+    function spawnMeteor() {
+      const size = 20 + Math.random() * 26;
+      state.meteors.push({
+        x: Math.random() * (canvas.width - size),
+        y: -size,
+        size,
+        speed: 2 + Math.random() * 2,
+        sway: Math.random() * 0.8 - 0.4
+      });
+    }
+
+    function update(dt) {
+      const p = state.player;
+      if (keys.has('arrowleft') || keys.has('a')) p.x -= p.speed;
+      if (keys.has('arrowright') || keys.has('d')) p.x += p.speed;
+      if (keys.has('arrowup') || keys.has('w')) p.y -= p.speed;
+      if (keys.has('arrowdown') || keys.has('s')) p.y += p.speed;
+      p.x = Math.max(0, Math.min(canvas.width - p.size, p.x));
+      p.y = Math.max(0, Math.min(canvas.height - p.size, p.y));
+
+      if (Math.random() < 0.02) spawnMeteor();
+
+      state.meteors.forEach(m => {
+        m.y += m.speed * (dt / 16);
+        m.x += Math.sin(m.y * 0.02) * m.sway * (dt / 16);
+      });
+      state.meteors = state.meteors.filter(m => m.y < canvas.height + 40);
+
+      checkCollisions();
+      state.score += dt * 0.02;
+      scoreEl.textContent = Math.floor(state.score);
+    }
+
+    function checkCollisions() {
+      const p = state.player;
+      for (const m of state.meteors) {
+        const hit = p.x < m.x + m.size && p.x + p.size > m.x && p.y < m.y + m.size && p.y + p.size > m.y;
+        if (hit) {
+          state.running = false;
+          state.best = Math.max(state.best, Math.floor(state.score));
+          localStorage.setItem('astroBest', state.best);
+          bestEl.textContent = state.best;
+          startBtn.textContent = 'Retry';
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#0b0f1f';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // player
+      ctx.fillStyle = '#7cf7ff';
+      ctx.fillRect(state.player.x, state.player.y, state.player.size, state.player.size);
+
+      // meteors
+      ctx.fillStyle = '#f72585';
+      state.meteors.forEach(m => {
+        ctx.beginPath();
+        ctx.roundRect(m.x, m.y, m.size, m.size, 6);
+        ctx.fill();
+      });
+
+      if (!state.running) {
+        ctx.fillStyle = 'rgba(7,8,20,0.6)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#e9ecf5';
+        ctx.font = '26px Space Grotesk, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Press Start to fly again', canvas.width / 2, canvas.height / 2);
+      }
+    }
+
+    function loop(timestamp) {
+      if (!state.running) return;
+      const dt = timestamp - state.lastTime;
+      state.lastTime = timestamp;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    startBtn.addEventListener('click', resetGame);
+    draw();
+  </script>
+</body>
+</html>

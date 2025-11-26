@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Flip - Galaxy Arcade</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="game-shell">
+    <a class="back-link" href="../index.html">← Back to arcade</a>
+    <div class="game-hero">
+      <div>
+        <h1>Memory Flip</h1>
+        <p class="controls">Tap two cards to reveal icons. Match pairs before the timer runs out.</p>
+      </div>
+      <div class="game-meta">
+        <span class="badge">Mouse/touch</span>
+        <span class="badge">Best score</span>
+      </div>
+    </div>
+
+    <div class="scoreboard">
+      <span>Time: <strong id="time">60</strong>s</span>
+      <span>Moves: <strong id="moves">0</strong></span>
+      <span>Best: <strong id="best">--</strong></span>
+      <button class="cta" id="restart">New board</button>
+    </div>
+
+    <div id="memory-board"></div>
+  </div>
+
+  <script>
+    const icons = ['🚀','🛸','🌙','☄️','🌟','🛰️','🪐','✨'];
+    const board = document.getElementById('memory-board');
+    const timeEl = document.getElementById('time');
+    const movesEl = document.getElementById('moves');
+    const bestEl = document.getElementById('best');
+    const restartBtn = document.getElementById('restart');
+
+    let timer;
+    let timeLeft = 60;
+    let moves = 0;
+    let revealed = [];
+    let lock = false;
+    let matchedPairs = 0;
+    bestEl.textContent = localStorage.getItem('memoryBest') || '--';
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function startTimer() {
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft--;
+        timeEl.textContent = timeLeft;
+        if (timeLeft <= 0) endGame(false);
+      }, 1000);
+    }
+
+    function endGame(won) {
+      clearInterval(timer);
+      lock = true;
+      const message = won ? 'You matched them all!' : 'Time is up!';
+      setTimeout(() => alert(message), 150);
+      if (won) {
+        const best = Number(localStorage.getItem('memoryBest') || Infinity);
+        if (moves < best) {
+          localStorage.setItem('memoryBest', moves);
+          bestEl.textContent = moves;
+        }
+      }
+    }
+
+    function buildBoard() {
+      board.innerHTML = '';
+      timeLeft = 60;
+      moves = 0;
+      matchedPairs = 0;
+      lock = false;
+      revealed = [];
+      timeEl.textContent = timeLeft;
+      movesEl.textContent = moves;
+      const cards = shuffle([...icons, ...icons]);
+      cards.forEach(icon => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.dataset.icon = icon;
+        div.addEventListener('click', () => handleClick(div));
+        board.appendChild(div);
+      });
+      startTimer();
+    }
+
+    function handleClick(card) {
+      if (lock || card.classList.contains('revealed') || card.classList.contains('matched')) return;
+      card.classList.add('revealed');
+      card.textContent = card.dataset.icon;
+      revealed.push(card);
+      if (revealed.length === 2) {
+        moves++;
+        movesEl.textContent = moves;
+        checkMatch();
+      }
+    }
+
+    function checkMatch() {
+      const [first, second] = revealed;
+      if (!second) return;
+      if (first.dataset.icon === second.dataset.icon) {
+        first.classList.add('matched');
+        second.classList.add('matched');
+        revealed = [];
+        matchedPairs++;
+        if (matchedPairs === icons.length) endGame(true);
+      } else {
+        lock = true;
+        setTimeout(() => {
+          first.classList.remove('revealed');
+          second.classList.remove('revealed');
+          first.textContent = '';
+          second.textContent = '';
+          revealed = [];
+          lock = false;
+        }, 750);
+      }
+    }
+
+    restartBtn.addEventListener('click', buildBoard);
+    buildBoard();
+  </script>
+</body>
+</html>

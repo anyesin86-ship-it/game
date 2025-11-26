@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Asteroid Dodger | Arcade Galaxy</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+  <div class="game-shell">
+    <div class="game-toolbar">
+      <a href="../index.html">← 홈으로</a>
+      <div class="game-cta">
+        <button class="button" id="restart">다시 시작</button>
+      </div>
+    </div>
+    <div class="game-card">
+      <h2 style="margin-top:0">Asteroid Dodger</h2>
+      <p style="color:var(--muted);margin-top:4px">← → 방향키로 이동합니다. 운석과 부딪히지 않도록 회피하세요!</p>
+      <div class="status-bar">
+        <span class="status-pill">점수: <span id="score">0</span></span>
+        <span class="status-pill">최고 점수: <span id="best">0</span></span>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="game" width="900" height="520"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="snackbar" id="snackbar">게임 종료! 다시 도전해보세요.</div>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const snackbar = document.getElementById('snackbar');
+
+    const ship = { x: canvas.width / 2, y: canvas.height - 70, w: 50, h: 70, speed: 7 };
+    let keys = { left: false, right: false };
+    let asteroids = [];
+    let score = 0;
+    let best = Number(localStorage.getItem('dodger-best') || 0);
+    let lastTime = 0;
+    let spawnTimer = 0;
+    let running = true;
+
+    bestEl.textContent = best;
+
+    function drawShip() {
+      ctx.fillStyle = '#7af5ff';
+      ctx.beginPath();
+      ctx.moveTo(ship.x, ship.y - ship.h / 2);
+      ctx.lineTo(ship.x - ship.w / 2, ship.y + ship.h / 2);
+      ctx.lineTo(ship.x + ship.w / 2, ship.y + ship.h / 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function spawnAsteroid() {
+      const size = 30 + Math.random() * 40;
+      asteroids.push({
+        x: Math.random() * (canvas.width - size) + size / 2,
+        y: -size,
+        size,
+        speed: 2.5 + Math.random() * 3 + score * 0.001
+      });
+    }
+
+    function update(delta) {
+      if (!running) return;
+      const move = ship.speed * delta * 0.06;
+      if (keys.left) ship.x = Math.max(ship.w / 2, ship.x - move);
+      if (keys.right) ship.x = Math.min(canvas.width - ship.w / 2, ship.x + move);
+
+      spawnTimer += delta;
+      if (spawnTimer > 600 - Math.min(score, 400)) {
+        spawnAsteroid();
+        spawnTimer = 0;
+      }
+
+      asteroids.forEach(a => {
+        a.y += a.speed * delta * 0.08;
+      });
+      asteroids = asteroids.filter(a => a.y < canvas.height + a.size);
+
+      asteroids.forEach(a => {
+        const dx = Math.abs(a.x - ship.x);
+        const dy = Math.abs(a.y - ship.y);
+        if (dx < a.size / 2 + ship.w / 2.2 && dy < a.size / 2 + ship.h / 2.2) {
+          gameOver();
+        }
+      });
+
+      score += Math.floor(delta * 0.04);
+      scoreEl.textContent = score;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#0d1222';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      for (let y = 0; y < canvas.height; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      drawShip();
+      ctx.fillStyle = '#f27bd8';
+      asteroids.forEach(a => {
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, a.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function loop(timestamp) {
+      const delta = timestamp - lastTime;
+      lastTime = timestamp;
+      update(delta);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function gameOver() {
+      running = false;
+      snackbar.classList.add('show');
+      setTimeout(() => snackbar.classList.remove('show'), 1800);
+      if (score > best) {
+        best = score;
+        localStorage.setItem('dodger-best', best);
+        bestEl.textContent = best;
+      }
+    }
+
+    function restart() {
+      score = 0;
+      spawnTimer = 0;
+      asteroids = [];
+      ship.x = canvas.width / 2;
+      running = true;
+      lastTime = performance.now();
+    }
+
+    document.getElementById('restart').addEventListener('click', restart);
+
+    window.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') keys.left = true;
+      if (e.key === 'ArrowRight') keys.right = true;
+      if (e.key === ' ' && !running) restart();
+    });
+
+    window.addEventListener('keyup', e => {
+      if (e.key === 'ArrowLeft') keys.left = false;
+      if (e.key === 'ArrowRight') keys.right = false;
+    });
+
+    restart();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

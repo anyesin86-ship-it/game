@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galaxy Arcade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">Galaxy Arcade</div>
+    <nav class="nav-links">
+      <a href="#games">Games</a>
+      <a href="#features">Features</a>
+      <a href="#about">About</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="tag">New &amp; polished</p>
+        <h1>Play a trio of handcrafted browser games.</h1>
+        <p class="lede">Built for instant fun with no downloads, Galaxy Arcade mixes arcade classics with a sleek Poki-style layout.</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="#games">Browse games</a>
+          <a class="btn ghost" href="#features">See features</a>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="stat-card">
+          <p class="label">New today</p>
+          <p class="value">3 games</p>
+          <p class="hint">Fresh, mobile-friendly experiences.</p>
+        </div>
+        <div class="stat-card">
+          <p class="label">Made for speed</p>
+          <p class="value">0 installs</p>
+          <p class="hint">Plays right in your browser.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="games" id="games">
+      <div class="section-header">
+        <p class="tag">Library</p>
+        <div>
+          <h2>Pick a game and start playing</h2>
+          <p class="sub">Each game is tuned for quick sessions and full keyboard support.</p>
+        </div>
+      </div>
+      <div class="game-grid">
+        <a class="game-card" href="games/astro-dodger.html">
+          <div class="card-cover cover-1"></div>
+          <div class="card-body">
+            <p class="tag">Arcade</p>
+            <h3>Astro Dodger</h3>
+            <p class="desc">Slide between meteor showers and climb the leaderboard with flawless dodges.</p>
+            <div class="meta">
+              <span>Keyboard</span>
+              <span>Endless</span>
+            </div>
+          </div>
+        </a>
+        <a class="game-card" href="games/memory-flip.html">
+          <div class="card-cover cover-2"></div>
+          <div class="card-body">
+            <p class="tag">Puzzle</p>
+            <h3>Memory Flip</h3>
+            <p class="desc">Match icons in as few moves as possible while the timer ticks down.</p>
+            <div class="meta">
+              <span>Mouse</span>
+              <span>Best score</span>
+            </div>
+          </div>
+        </a>
+        <a class="game-card" href="games/paddle-blast.html">
+          <div class="card-cover cover-3"></div>
+          <div class="card-body">
+            <p class="tag">Breakout</p>
+            <h3>Paddle Blast</h3>
+            <p class="desc">Curve shots, pop bricks, and keep your combo alive across neon arenas.</p>
+            <div class="meta">
+              <span>Keyboard/Mouse</span>
+              <span>Combo</span>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="feature-row" id="features">
+      <div class="feature">
+        <h3>Instant launch</h3>
+        <p>No logins or installers—each game starts right inside the browser with optimized controls.</p>
+      </div>
+      <div class="feature">
+        <h3>Mobile-ready</h3>
+        <p>Responsive layouts keep the action legible on phones, tablets, and laptops.</p>
+      </div>
+      <div class="feature">
+        <h3>Open source</h3>
+        <p>Clone, remix, and extend the site to add your own arcade classics.</p>
+      </div>
+    </section>
+
+    <section class="about" id="about">
+      <div class="about-card">
+        <h3>About this arcade</h3>
+        <p>Galaxy Arcade is a minimalist Poki-style hub designed for quick enjoyment. Each game is crafted with vanilla HTML, CSS, and JavaScript so it works everywhere.</p>
+        <div class="about-actions">
+          <a class="btn primary" href="https://github.com" target="_blank" rel="noreferrer">View source</a>
+          <a class="btn ghost" href="#">Share feedback</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div>Made with ❤️ for the browser.</div>
+    <div class="footer-links">
+      <a href="#games">Games</a>
+      <a href="#about">About</a>
+    </div>
+  </footer>
+
+  <script src="assets/main.js"></script>
+</body>
+</html>

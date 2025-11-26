@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paddle Blast - Galaxy Arcade</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="game-shell">
+    <a class="back-link" href="../index.html">← Back to arcade</a>
+    <div class="game-hero">
+      <div>
+        <h1>Paddle Blast</h1>
+        <p class="controls">Move with your mouse or arrow keys. Clear bricks without letting the ball fall.</p>
+      </div>
+      <div class="game-meta">
+        <span class="badge">Mouse/keyboard</span>
+        <span class="badge">3 lives</span>
+      </div>
+    </div>
+
+    <div class="scoreboard">
+      <span>Score: <strong id="score">0</strong></span>
+      <span>Lives: <strong id="lives">3</strong></span>
+      <button class="cta" id="restart">Restart</button>
+    </div>
+
+    <div class="canvas-frame">
+      <canvas id="paddle-canvas" width="720" height="480"></canvas>
+    </div>
+    <p class="controls">Tip: catching the ball while moving adds curve and speed for higher scores.</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('paddle-canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const livesEl = document.getElementById('lives');
+    const restartBtn = document.getElementById('restart');
+
+    const paddle = { x: 300, y: canvas.height - 24, w: 140, h: 14, speed: 8 };
+    const ball = { x: 360, y: 260, vx: 4, vy: -4, r: 9 };
+    let bricks = [];
+    let score = 0;
+    let lives = 3;
+    let running = true;
+
+    function createBricks() {
+      bricks = [];
+      const rows = 5;
+      const cols = 10;
+      const padding = 8;
+      const brickW = (canvas.width - padding * (cols + 1)) / cols;
+      const brickH = 22;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          bricks.push({
+            x: padding + c * (brickW + padding),
+            y: 60 + r * (brickH + padding),
+            w: brickW,
+            h: brickH,
+            hit: false,
+            color: `hsl(${220 + r * 18}, 70%, 60%)`
+          });
+        }
+      }
+    }
+
+    function reset() {
+      paddle.x = 300;
+      ball.x = 360;
+      ball.y = 260;
+      ball.vx = 4;
+      ball.vy = -4;
+      score = 0;
+      lives = 3;
+      running = true;
+      createBricks();
+      updateHud();
+      requestAnimationFrame(loop);
+    }
+
+    function updateHud() {
+      scoreEl.textContent = score;
+      livesEl.textContent = lives;
+    }
+
+    const keys = new Set();
+    document.addEventListener('keydown', e => keys.add(e.key.toLowerCase()));
+    document.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+    canvas.addEventListener('mousemove', e => {
+      const rect = canvas.getBoundingClientRect();
+      const pos = e.clientX - rect.left;
+      paddle.x = pos - paddle.w / 2;
+    });
+
+    function update() {
+      if (keys.has('arrowleft') || keys.has('a')) paddle.x -= paddle.speed;
+      if (keys.has('arrowright') || keys.has('d')) paddle.x += paddle.speed;
+      paddle.x = Math.max(0, Math.min(canvas.width - paddle.w, paddle.x));
+
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      if (ball.x - ball.r < 0 || ball.x + ball.r > canvas.width) ball.vx *= -1;
+      if (ball.y - ball.r < 0) ball.vy *= -1;
+
+      if (ball.y + ball.r > canvas.height) {
+        lives -= 1;
+        if (lives <= 0) {
+          running = false;
+          showMessage('Game over!');
+        } else {
+          ball.x = canvas.width / 2;
+          ball.y = canvas.height - 80;
+          ball.vx = 4 * (Math.random() > 0.5 ? 1 : -1);
+          ball.vy = -4;
+        }
+        updateHud();
+      }
+
+      // paddle collision
+      if (ball.x > paddle.x && ball.x < paddle.x + paddle.w && ball.y + ball.r > paddle.y && ball.y - ball.r < paddle.y + paddle.h) {
+        const hitPos = (ball.x - paddle.x) / paddle.w - 0.5;
+        ball.vx = hitPos * 10;
+        ball.vy = -Math.abs(ball.vy);
+        score += 2;
+        updateHud();
+      }
+
+      // bricks
+      bricks.forEach(brick => {
+        if (brick.hit) return;
+        const inX = ball.x + ball.r > brick.x && ball.x - ball.r < brick.x + brick.w;
+        const inY = ball.y + ball.r > brick.y && ball.y - ball.r < brick.y + brick.h;
+        if (inX && inY) {
+          brick.hit = true;
+          score += 10;
+          // reflect ball
+          const overlapLeft = ball.x + ball.r - brick.x;
+          const overlapRight = brick.x + brick.w - (ball.x - ball.r);
+          const overlapTop = ball.y + ball.r - brick.y;
+          const overlapBottom = brick.y + brick.h - (ball.y - ball.r);
+          const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+          if (minOverlap === overlapLeft) ball.vx = -Math.abs(ball.vx);
+          else if (minOverlap === overlapRight) ball.vx = Math.abs(ball.vx);
+          else if (minOverlap === overlapTop) ball.vy = -Math.abs(ball.vy);
+          else ball.vy = Math.abs(ball.vy);
+          updateHud();
+        }
+      });
+
+      if (bricks.every(b => b.hit)) {
+        running = false;
+        showMessage('You cleared the board!');
+      }
+    }
+
+    function showMessage(text) {
+      ctx.fillStyle = 'rgba(7,8,20,0.65)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#e9ecf5';
+      ctx.font = '28px Space Grotesk, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // paddle
+      ctx.fillStyle = '#7cf7ff';
+      ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+
+      // ball
+      ctx.fillStyle = '#f72585';
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // bricks
+      bricks.forEach(brick => {
+        if (brick.hit) return;
+        ctx.fillStyle = brick.color;
+        ctx.fillRect(brick.x, brick.y, brick.w, brick.h);
+      });
+    }
+
+    function loop() {
+      if (!running) return;
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    restartBtn.addEventListener('click', reset);
+    reset();
+  </script>
+</body>
+</html>
